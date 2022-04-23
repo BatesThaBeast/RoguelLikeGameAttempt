@@ -8,7 +8,7 @@ public enum PlayerState
    walk, attack, interact, stagger, dead, holdingBox, holdingBow
 }
 
-public class Player : Character , IDataPersistence
+public class Player : Character , IDataPersistence , IPushable
 {
     protected Animation weapon;
     protected PlayerState currentState = PlayerState.walk;//---------State Machine---------
@@ -17,6 +17,8 @@ public class Player : Character , IDataPersistence
     {
         this.dexterity = 06f;
         this.weapon = GameObject.Find("BigSword").GetComponent<Animation>();
+        this.push = 10f;
+        this.pushTime = .3f;
     }
     void Update()
     {
@@ -74,6 +76,27 @@ public class Player : Character , IDataPersistence
             anim.SetBool("moving", true);//moving set true in animator
         }        
     }
+    public float push { get; private set; }
+    public float pushTime { get; private set; }
+    public void Push(Collider2D obj)
+    {
+        Rigidbody2D character = obj.GetComponent<Rigidbody2D>();//reference to the Rigidbody component
+        if (character != null)//makes sure the object hasn't already been destroyed
+        {
+            Vector2 difference = character.transform.position - transform.position;//not sure lol
+            difference = difference.normalized * push;//this is where the thrust will change how far something is pushed back
+            character.AddForce(difference, ForceMode2D.Impulse);//the actual push occurs here
+            StartCoroutine(PushCo(character));
+        }
+    }
+    public IEnumerator PushCo(Rigidbody2D character)//Author Johnathan Bates
+    {
+        if (character != null)
+        {
+            yield return new WaitForSeconds(pushTime);
+            character.velocity = Vector2.zero;
+        }
+    }
     //******************************************************************************************************************************************************
     //************************************************************DECLARING IDATAPERSISTENCE****************************************************************
     //******************************************************************************************************************************************************
@@ -92,5 +115,16 @@ public class Player : Character , IDataPersistence
         data.currentHealth = this.currentHealth;
         data.playerPosition = this.transform.position;
         Debug.Log(data.playerPosition);
+    }
+    private void OnTriggerEnter2D(Collider2D obj)
+    {
+        if ((this.CompareTag("Player") && obj.CompareTag("Enemy")) || (obj.CompareTag("Player") && this.CompareTag("Enemy")))//check to make sure either player hits enemy or enemy hits player
+        {
+            if (obj.gameObject != null)
+            {
+                //Damage(attackDamage, obj);
+                Push(obj);
+            }
+        }
     }
 }

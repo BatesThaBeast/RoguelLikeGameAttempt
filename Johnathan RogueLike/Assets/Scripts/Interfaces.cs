@@ -25,7 +25,10 @@ public interface IMovable
 }
 public interface IPushable
 {
-    void Push();
+    float push { get; }
+    float pushTime { get; }
+    void Push(Collider2D obj);
+    IEnumerator PushCo(Rigidbody2D character);
 }
 
 
